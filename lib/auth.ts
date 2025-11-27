@@ -108,12 +108,14 @@ export const authConfig: NextAuthConfig = {
             const randomPassword = Math.random().toString(36).slice(-12)
             const hashedPassword = await hash(randomPassword, 10)
             const newUser = await createUser(name || 'Google User', email, hashedPassword, 'USER')
-            user.id = newUser.id
-            user.role = newUser.role
+
+              // Cast to any to avoid TS error with NextAuth types
+              ; (user as any).id = newUser.id
+              ; (user as any).role = newUser.role
             console.log('[Auth] New user created:', newUser.id)
           } else {
-            user.id = existingUser.id
-            user.role = existingUser.role
+            ; (user as any).id = existingUser.id
+              ; (user as any).role = existingUser.role
             console.log('[Auth] Existing user logged in:', existingUser.id)
           }
 
