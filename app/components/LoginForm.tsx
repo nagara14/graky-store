@@ -47,7 +47,11 @@ export default function LoginForm() {
         console.log('=== LOGIN FAILED ===')
         const errorMessage = result?.error === 'CredentialsSignin'
           ? 'Email atau password salah!'
-          : (result?.error || 'Login gagal, coba lagi')
+          : result?.error === 'DatabaseConnectionError'
+            ? 'Gagal terhubung ke database! Pastikan XAMPP MySQL berjalan.'
+            : result?.error === 'DatabaseError'
+              ? 'Terjadi kesalahan database.'
+              : (result?.error || 'Login gagal, coba lagi')
         setError(errorMessage)
         setLoading(false)
 

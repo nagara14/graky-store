@@ -1,4 +1,10 @@
 {
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/api/cart/route": "app/api/cart/route.js",
   "/auth/login/page": "app/auth/login/page.js",
-  "/auth/register/page": "app/auth/register/page.js"
+  "/page": "app/page.js",
+  "/dashboard/admin/products/page": "app/dashboard/admin/products/page.js",
+  "/dashboard/karyawan/page": "app/dashboard/karyawan/page.js",
+  "/dashboard/admin/users/page": "app/dashboard/admin/users/page.js",
+  "/dashboard/karyawan/pesanan/page": "app/dashboard/karyawan/pesanan/page.js"
 }

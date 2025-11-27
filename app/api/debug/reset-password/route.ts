@@ -1,53 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { updateUserPasswordByEmail } from '@/lib/db'
 import bcrypt from 'bcryptjs'
-import { getUserByEmail, updateUserPasswordByEmail } from '@/lib/db'
 
-// GET -> simple form/instructions
-export async function GET() {
-  const html = `
-  <!doctype html>
-  <html><head><meta charset="utf-8"><title>Debug: reset-password</title></head>
-  <body style="font-family:system-ui,Arial;margin:24px">
-    <h2>/api/debug/reset-password</h2>
-    <p>POST JSON { "email":"...", "newPassword":"..." } with header <code>X-DEBUG-SECRET</code>.</p>
-    <p>Example curl:</p>
-    <pre>curl -X POST http://localhost:3000/api/debug/reset-password \\
-  -H "Content-Type: application/json" \\
-  -H "X-DEBUG-SECRET: ${process.env.DEBUG_RESET_SECRET || 'set_DEBUG_RESET_SECRET'}" \\
-  -d '{"email":"mamat.admin@graky.com","newPassword":"admin123456"}'</pre>
-    <p><strong>DEBUG ONLY:</strong> remove after use.</p>
-  </body></html>`
-  return new NextResponse(html, { status: 200, headers: { 'Content-Type': 'text/html' } })
-}
-
-// POST -> perform reset (requires X-DEBUG-SECRET header)
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
-    const secretHeader = request.headers.get('x-debug-secret') || ''
-    const secretEnv = process.env.DEBUG_RESET_SECRET || ''
+    const email = 'admin@graky.store'
+    const newPassword = 'admin123'
 
-    if (!secretEnv || secretHeader !== secretEnv) {
-      return NextResponse.json({ error: 'Unauthorized (invalid debug secret)' }, { status: 401 })
-    }
+    console.log('[API] Resetting admin password to:', newPassword)
 
-    const body = await request.json()
-    const { email, newPassword } = body || {}
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
+    console.log('[API] Generated hash:', hashedPassword.substring(0, 20) + '...')
 
-    if (!email || !newPassword) {
-      return NextResponse.json({ error: 'Missing email or newPassword' }, { status: 400 })
-    }
+    await updateUserPasswordByEmail(email, hashedPassword)
 
-    const user = await getUserByEmail(email)
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+    console.log('[API] Password reset successful')
 
-    const hashed = bcrypt.hashSync(newPassword, 10)
-    await updateUserPasswordByEmail(email, hashed)
-
-    return NextResponse.json({ success: true, email, hashed })
-  } catch (err) {
-    console.error('reset-password error:', err)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+    return NextResponse.json({
+      success: true,
+      message: `Password for ${email} has been reset to: ${newPassword}`,
+      passwordLength: newPassword.length,
+      hashPrefix: hashedPassword.substring(0, 20)
+    })
+  } catch (error: any) {
+    console.error('[API] Error resetting password:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
