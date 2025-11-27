@@ -76,6 +76,7 @@ const pool = mysql.createPool(poolConfig)
 
 let isInitialized = false
 let initPromise: Promise<void> | null = null
+let initializationAttempted = false
 
 // Initialize database tables
 export async function initializeDatabase() {
@@ -334,6 +335,17 @@ export async function initializeDatabase() {
 
 // User functions
 export async function createUser(name: string, email: string, password: string, role: string = 'USER') {
+  // Ensure database is initialized before any operation (critical for Vercel serverless)
+  if (!initializationAttempted) {
+    initializationAttempted = true
+    try {
+      await initializeDatabase()
+    } catch (error) {
+      console.error('[DB Init] Failed to initialize database:', error)
+      throw new Error('Database initialization failed')
+    }
+  }
+
   const connection = await pool.getConnection()
   try {
     // Hash password jika belum ter-hash (use 12 rounds for better security)

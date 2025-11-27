@@ -1,11 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { hash } from 'bcryptjs'
-import { createUser, getUserByEmail } from '@/lib/db'
+import { createUser, getUserByEmail, initializeDatabase } from '@/lib/db'
 import { registerRateLimiter } from '@/lib/ratelimit'
 import { validatePassword, validateEmail, sanitizeInput } from '@/lib/validation'
 
+// Initialize database on module load (for serverless cold starts)
+let dbInitialized = false
+
 export async function POST(request: NextRequest) {
   try {
+    // Ensure database is initialized (critical for Vercel serverless)
+    if (!dbInitialized) {
+      try {
+        await initializeDatabase()
+        dbInitialized = true
+      } catch (initError: any) {
+        console.error('[Register] Database initialization failed:', {
+          message: initError.message,
+          stack: initError.stack,
+          code: initError.code,
+          env: {
+            hasDatabaseUrl: !!process.env.DATABASE_URL,
+            nodeEnv: process.env.NODE_ENV,
+          }
+        })
+        return NextResponse.json(
+          {
+            error: 'Database connection failed',
+            details: process.env.NODE_ENV === 'development' ? initError.message : undefined
+          },
+          { status: 500 }
+        )
+      }
+    }
+
     const body = await request.json()
     let { name, email, password, confirmPassword } = body
 
@@ -82,9 +110,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email sudah terdaftar' }, { status: 400 })
     }
 
-    console.error('[Register] Error:', error)
+    // Enhanced error logging for debugging in Vercel
+    console.error('[Register] Error:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      errno: error.errno,
+      sqlMessage: error.sqlMessage,
+      sql: error.sql,
+    })
+
     return NextResponse.json(
-      { error: 'Registrasi gagal, silakan coba lagi' },
+      {
+        error: 'Registrasi gagal, silakan coba lagi',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      },
       { status: 500 }
     )
   }

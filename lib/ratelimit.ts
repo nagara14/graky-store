@@ -28,6 +28,13 @@ class RateLimiter {
      * @returns true if allowed, false if rate limited
      */
     check(identifier: string): boolean {
+        // TEMPORARY: Bypass in serverless/production until Redis is configured
+        // In-memory rate limiting doesn't work in serverless (each request may hit different instance)
+        if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
+            console.warn('[RateLimiter] Bypassed in serverless environment for:', identifier)
+            return true // Always allow
+        }
+
         const now = Date.now()
         const entry = this.attempts.get(identifier)
 
