@@ -60,7 +60,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Fetch cart saat session berubah
   useEffect(() => {
     if (!mounted) return
-    
+
     if (status === 'authenticated') {
       fetchCart()
     } else {
@@ -117,11 +117,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
 
-  // Jangan render sampai client-side
-  if (!mounted) {
-    return <>{children}</>
-  }
-
+  // Always render Provider to avoid "useCart must be used within CartProvider" error
+  // The content inside will handle loading states if needed
   return (
     <CartContext.Provider value={{ items, loading, total, addItem, removeItem, updateQuantity, clear }}>
       {children}
