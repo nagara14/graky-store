@@ -1,35 +1,47 @@
-remotePatterns: [
-  {
-    protocol: 'http',
-    hostname: '**',
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
   },
-  {
-    protocol: 'https',
-    hostname: '**',
-  },
-],
-  unoptimized: false,
+  // Enable experimental optimizations
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
   },
 
-webpack: (config, { isServer }) => {
-  if (!isServer) {
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      tls: false,
-      net: false,
-      fs: false,
+  // Image optimization
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: '**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+    unoptimized: false,
+  },
+
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        tls: false,
+        net: false,
+        fs: false,
+      }
     }
-  }
-  return config
-},
+    return config
+  },
 
   // Compression and optimization
   compress: true,
-    productionBrowserSourceMaps: false,
-      reactStrictMode: true,
+  productionBrowserSourceMaps: false,
+  reactStrictMode: true,
 
-        // Output configuration for server-side rendering
-        output: 'standalone',
+  // Output configuration for server-side rendering
+  output: 'standalone',
 }
 
 export default nextConfig
