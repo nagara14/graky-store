@@ -1,0 +1,42 @@
+{
+  "name": "graky-store",
+  "version": "1.0.0",
+  "description": "Graky Store - Vintage Thrifting Catalog",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "tsx": "tsx",
+    "test-db": "tsx scripts/test-db.ts",
+    "check-system": "tsx scripts/check-system.ts",
+    "init-db": "tsx scripts/init-db.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.0.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.0",
+    "axios": "^1.6.0",
+    "bcryptjs": "^2.4.3",
+    "lucide-react": "^0.407.0",
+    "midtrans-client": "^1.4.3",
+    "mysql2": "^3.6.5",
+    "next": "^15.0.0",
+    "next-auth": "^5.0.0-beta.20",
+    "postcss": "^8.4.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.0.0",
+    "uuid": "^13.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.2",
+    "prisma": "^7.0.0",
+    "tsx": "^4.7.0"
+  }
+}

@@ -1,0 +1,149 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  name      String
+  email     String     @unique
+  password  String
+  role      Role       @default(USER)
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Relations
+  products        Product[]
+  auditLogs       AuditLog[]
+  cartItems       Cart[]
+  orders          Order[]
+  processedOrders  Order[]     @relation("ProcessedOrders")
+
+  @@index([email])
+  @@index([role])
+}
+
+enum Role {
+  ADMIN
+  KARYAWAN
+  USER
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  icon      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Relations
+  products  Product[]
+}
+
+model Product {
+  id        String     @id @default(cuid())
+  name      String
+  category  Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+  description String   @db.Text
+  sizes     String     // JSON array: ["S", "M", "L"]
+  condition String     // A, B, C
+  price     Int
+  photoUrl  String?
+  createdBy User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Relations
+  photos    GalleryPhoto[]
+  cartItems Cart[]
+  orderItems OrderItem[]
+
+  @@index([categoryId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model GalleryPhoto {
+  id        String     @id @default(cuid())
+  url       String
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  createdAt DateTime   @default(now())
+
+  @@index([productId])
+}
+
+model AuditLog {
+  id        String     @id @default(cuid())
+  action    String     // CREATE, UPDATE, DELETE
+  entity    String     // User, Product, Category
+  entityId  String
+  changes   String     @db.Json
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime   @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Cart {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+model Order {
+  id               String      @id @default(cuid())
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String
+  items            OrderItem[]
+  totalAmount      Int
+  shippingAddress  String
+  shippingCity     String
+  shippingPostal   String
+  shippingPhone    String
+  paymentStatus    String      @default("PENDING")  // PENDING, CONFIRMED, PAID
+  orderStatus      String      @default("PENDING")  // PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED
+  notes            String?     @db.Text
+  processedBy      User?       @relation("ProcessedOrders", fields: [processedById], references: [id])
+  processedById    String?
+  processedAt      DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([orderStatus])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int
+  price     Int
+
+  @@index([orderId])
+  @@index([productId])
+}
