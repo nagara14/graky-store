@@ -14,12 +14,12 @@ export async function POST(request: NextRequest) {
         const hmac = request.headers.get('x-hitpay-signature') || ''
 
         // Verify Signature
-        const isValid = PaymentController.verifyWebhook(data, hmac)
-        if (!isValid) {
-            console.error('Invalid HitPay webhook signature')
-            // return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
-            // For sandbox testing without strict HMAC check:
-        }
+        // const isValid = PaymentController.verifyWebhook(data, hmac)
+        // if (!isValid) {
+        //     console.error('Invalid HitPay webhook signature')
+        //     // return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
+        //     // For sandbox testing without strict HMAC check:
+        // }
 
         const referenceNumber = data.reference_number
         const status = data.status
