@@ -240,8 +240,11 @@ export const authConfig: NextAuthConfig = {
       },
     },
   },
+  // Enable debug logs for troubleshooting
+  debug: true,
   // Trust host in development, or if explicitly set in production
-  trustHost: process.env.NODE_ENV === 'development' || process.env.AUTH_TRUST_HOST === 'true',
+  // For Vercel, we should trust the host
+  trustHost: true,
 }
 
 export const { handlers, auth } = NextAuth(authConfig)
