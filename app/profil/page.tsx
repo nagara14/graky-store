@@ -1,6 +1,7 @@
 'use client'
 
 import { useSession, signOut } from 'next-auth/react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { User, Mail, ShieldCheck, LogOut, ShoppingBag, Settings, Home } from 'lucide-react'
 import Link from 'next/link'
@@ -10,8 +11,13 @@ export default function ProfilePage() {
     const router = useRouter()
     const userRole = (session?.user as any)?.role
 
+    useEffect(() => {
+        if (!session) {
+            router.push('/auth/login')
+        }
+    }, [session, router])
+
     if (!session) {
-        router.push('/auth/login')
         return null
     }
 

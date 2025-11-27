@@ -4,8 +4,8 @@ import bcrypt from 'bcryptjs'
 
 const poolConfig: any = {
   waitForConnections: true,
-  connectionLimit: 5,
-  queueLimit: 10,
+  connectionLimit: 10, // Increased for build process
+  queueLimit: 0, // Unlimited queue
   enableKeepAlive: true,
 }
 
@@ -74,13 +74,22 @@ if (process.env.DATABASE_URL) {
 
 const pool = mysql.createPool(poolConfig)
 
+let isInitialized = false
+let initPromise: Promise<void> | null = null
+
 // Initialize database tables
 export async function initializeDatabase() {
-  const connection = await pool.getConnection()
-  try {
-    // Check if tables exist, if not create them
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS users (
+  if (isInitialized) return
+
+  // Prevent concurrent initialization calls
+  if (initPromise) return initPromise
+
+  initPromise = (async () => {
+    const connection = await pool.getConnection()
+    try {
+      // Check if tables exist, if not create them
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS users (
         id VARCHAR(36) PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
@@ -97,7 +106,7 @@ export async function initializeDatabase() {
       )
     `)
 
-    await connection.query(`
+      await connection.query(`
       CREATE TABLE IF NOT EXISTS categories (
         id VARCHAR(36) PRIMARY KEY,
         name VARCHAR(100) UNIQUE NOT NULL,
@@ -107,7 +116,7 @@ export async function initializeDatabase() {
       )
     `)
 
-    await connection.query(`
+      await connection.query(`
       CREATE TABLE IF NOT EXISTS products (
         id VARCHAR(36) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -129,40 +138,40 @@ export async function initializeDatabase() {
       )
     `)
 
-    // Add stock column if it doesn't exist (for existing databases)
-    try {
-      await connection.query(`
+      // Add stock column if it doesn't exist (for existing databases)
+      try {
+        await connection.query(`
         ALTER TABLE products 
         ADD COLUMN IF NOT EXISTS stock INT NOT NULL DEFAULT 0
       `)
-    } catch (error: any) {
-      // Column might already exist, ignore error
-      if (!error.message?.includes('Duplicate column name')) {
-        console.warn('Could not add stock column:', error.message)
+      } catch (error: any) {
+        // Column might already exist, ignore error
+        if (!error.message?.includes('Duplicate column name')) {
+          console.warn('Could not add stock column:', error.message)
+        }
       }
-    }
 
-    // Add lockout columns if they don't exist (for existing databases)
-    try {
-      await connection.query(`
+      // Add lockout columns if they don't exist (for existing databases)
+      try {
+        await connection.query(`
         ALTER TABLE users 
         ADD COLUMN IF NOT EXISTS failedLoginAttempts INT DEFAULT 0
       `)
-      await connection.query(`
+        await connection.query(`
         ALTER TABLE users 
         ADD COLUMN IF NOT EXISTS lockoutUntil DATETIME NULL
       `)
-      await connection.query(`
+        await connection.query(`
         ALTER TABLE users 
         ADD COLUMN IF NOT EXISTS lastLoginAt DATETIME NULL
       `)
-    } catch (error: any) {
-      if (!error.message?.includes('Duplicate column name')) {
-        console.warn('Could not add lockout columns:', error.message)
+      } catch (error: any) {
+        if (!error.message?.includes('Duplicate column name')) {
+          console.warn('Could not add lockout columns:', error.message)
+        }
       }
-    }
 
-    await connection.query(`
+      await connection.query(`
       CREATE TABLE IF NOT EXISTS gallery_photos (
         id VARCHAR(36) PRIMARY KEY,
         url VARCHAR(500) NOT NULL,
@@ -173,7 +182,7 @@ export async function initializeDatabase() {
       )
     `)
 
-    await connection.query(`
+      await connection.query(`
       CREATE TABLE IF NOT EXISTS audit_logs (
         id VARCHAR(36) PRIMARY KEY,
         action VARCHAR(50) NOT NULL,
@@ -188,7 +197,7 @@ export async function initializeDatabase() {
       )
     `)
 
-    await connection.query(`
+      await connection.query(`
       CREATE TABLE IF NOT EXISTS carts (
         id VARCHAR(36) PRIMARY KEY,
         userId VARCHAR(36) NOT NULL,
@@ -203,7 +212,7 @@ export async function initializeDatabase() {
       )
     `)
 
-    await connection.query(`
+      await connection.query(`
       CREATE TABLE IF NOT EXISTS orders (
         id VARCHAR(36) PRIMARY KEY,
         userId VARCHAR(36) NOT NULL,
@@ -230,15 +239,15 @@ export async function initializeDatabase() {
       )
     `)
 
-    // Ensure payment columns exist (for existing databases)
-    try {
-      await connection.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS paymentId VARCHAR(255) NULL`)
-      await connection.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS paymentUrl TEXT NULL`)
-    } catch (e) {
-      console.warn('Could not ensure payment columns:', e)
-    }
+      // Ensure payment columns exist (for existing databases)
+      try {
+        await connection.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS paymentId VARCHAR(255) NULL`)
+        await connection.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS paymentUrl TEXT NULL`)
+      } catch (e) {
+        console.warn('Could not ensure payment columns:', e)
+      }
 
-    await connection.query(`
+      await connection.query(`
       CREATE TABLE IF NOT EXISTS order_items (
         id VARCHAR(36) PRIMARY KEY,
         orderId VARCHAR(36) NOT NULL,
@@ -253,48 +262,48 @@ export async function initializeDatabase() {
       )
     `)
 
-    // Ensure all order columns exist (best-effort)
-    try {
-      await connection.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS notes TEXT NULL`)
-      await connection.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS processedAt DATETIME NULL`)
-      await connection.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS processedBy VARCHAR(36) NULL`)
-      await connection.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rating INT NULL`)
-      await connection.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS reviewText TEXT NULL`)
-      await connection.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS reviewedAt DATETIME NULL`)
-    } catch (e) {
+      // Ensure all order columns exist (best-effort)
       try {
-        const [rows]: any = await connection.query(
-          `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'orders'`,
-          [process.env.DB_NAME || 'graky_store']
-        )
-        const existing = (rows || []).map((r: any) => r.COLUMN_NAME)
-        if (!existing.includes('notes')) {
-          await connection.query(`ALTER TABLE orders ADD COLUMN notes TEXT NULL`)
+        await connection.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS notes TEXT NULL`)
+        await connection.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS processedAt DATETIME NULL`)
+        await connection.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS processedBy VARCHAR(36) NULL`)
+        await connection.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rating INT NULL`)
+        await connection.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS reviewText TEXT NULL`)
+        await connection.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS reviewedAt DATETIME NULL`)
+      } catch (e) {
+        try {
+          const [rows]: any = await connection.query(
+            `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'orders'`,
+            [process.env.DB_NAME || 'graky_store']
+          )
+          const existing = (rows || []).map((r: any) => r.COLUMN_NAME)
+          if (!existing.includes('notes')) {
+            await connection.query(`ALTER TABLE orders ADD COLUMN notes TEXT NULL`)
+          }
+          if (!existing.includes('processedAt')) {
+            await connection.query(`ALTER TABLE orders ADD COLUMN processedAt DATETIME NULL`)
+          }
+          if (!existing.includes('processedBy')) {
+            await connection.query(`ALTER TABLE orders ADD COLUMN processedBy VARCHAR(36) NULL`)
+          }
+          if (!existing.includes('rating')) {
+            await connection.query(`ALTER TABLE orders ADD COLUMN rating INT NULL`)
+          }
+          if (!existing.includes('reviewText')) {
+            await connection.query(`ALTER TABLE orders ADD COLUMN reviewText TEXT NULL`)
+          }
+          if (!existing.includes('reviewedAt')) {
+            await connection.query(`ALTER TABLE orders ADD COLUMN reviewedAt DATETIME NULL`)
+          }
+        } catch (e2) {
+          console.warn('Could not ensure order columns (non-fatal):', e2)
         }
-        if (!existing.includes('processedAt')) {
-          await connection.query(`ALTER TABLE orders ADD COLUMN processedAt DATETIME NULL`)
-        }
-        if (!existing.includes('processedBy')) {
-          await connection.query(`ALTER TABLE orders ADD COLUMN processedBy VARCHAR(36) NULL`)
-        }
-        if (!existing.includes('rating')) {
-          await connection.query(`ALTER TABLE orders ADD COLUMN rating INT NULL`)
-        }
-        if (!existing.includes('reviewText')) {
-          await connection.query(`ALTER TABLE orders ADD COLUMN reviewText TEXT NULL`)
-        }
-        if (!existing.includes('reviewedAt')) {
-          await connection.query(`ALTER TABLE orders ADD COLUMN reviewedAt DATETIME NULL`)
-        }
-      } catch (e2) {
-        console.warn('Could not ensure order columns (non-fatal):', e2)
       }
-    }
 
-    // Insert default categories if not exist
-    const [categories]: any = await connection.query('SELECT COUNT(*) as count FROM categories')
-    if (categories[0].count === 0) {
-      await connection.query(`
+      // Insert default categories if not exist
+      const [categories]: any = await connection.query('SELECT COUNT(*) as count FROM categories')
+      if (categories[0].count === 0) {
+        await connection.query(`
         INSERT INTO categories (id, name, icon) VALUES
         ('cat-topi', 'Topi', '🎩'),
         ('cat-kaos', 'Kaos', '👕'),
@@ -305,16 +314,22 @@ export async function initializeDatabase() {
         ('cat-shorts', 'Celana Pendek', '🩳'),
         ('cat-shoes', 'Sepatu', '👟')
       `)
-    }
+      }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('✓ Database initialized successfully')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✓ Database initialized successfully')
+      }
+
+      isInitialized = true
+    } catch (error) {
+      console.error('✗ Database initialization error:', error)
+      throw error
+    } finally {
+      connection.release()
     }
-  } catch (error) {
-    console.error('✗ Database initialization error:', error)
-  } finally {
-    connection.release()
-  }
+  })()
+
+  return initPromise
 }
 
 // User functions
