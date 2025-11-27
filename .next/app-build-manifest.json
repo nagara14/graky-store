@@ -36,16 +36,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/cart/route.js"
     ],
-    "/api/debug/users/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/debug/users/route.js"
-    ],
-    "/api/debug/reset-password/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/debug/reset-password/route.js"
-    ],
     "/dashboard/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
