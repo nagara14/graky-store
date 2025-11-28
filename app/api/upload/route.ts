@@ -74,8 +74,16 @@ export async function POST(request: NextRequest) {
     // Check if Cloudinary is configured
     const useCloudinary = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET)
 
-    // Import dynamically to avoid build errors if file doesn't exist yet
-    const { uploadToCloudinary } = await import('@/lib/cloudinary')
+    // Import Cloudinary helper (using require to avoid top-level await issues in some envs)
+    let uploadToCloudinary: any = null
+    if (useCloudinary) {
+      try {
+        const cloudinaryLib = require('@/lib/cloudinary')
+        uploadToCloudinary = cloudinaryLib.uploadToCloudinary
+      } catch (e) {
+        console.error('Failed to require cloudinary lib', e)
+      }
+    }
 
     for (const file of files) {
       // SECURITY FIX 1: Validate MIME type against whitelist
@@ -105,7 +113,7 @@ export async function POST(request: NextRequest) {
 
       const fileBuffer = Buffer.from(buffer)
 
-      if (useCloudinary) {
+      if (useCloudinary && uploadToCloudinary) {
         // Upload to Cloudinary (Production / Vercel)
         try {
           console.log(`[Upload] Uploading ${file.name} to Cloudinary...`)
@@ -116,7 +124,7 @@ export async function POST(request: NextRequest) {
           // Return specific error message for debugging
           const errorMessage = error.message || JSON.stringify(error)
           return NextResponse.json(
-            { error: `Gagal mengupload ke Cloudinary: ${errorMessage}` },
+            { error: `[DEBUG] Gagal Cloudinary: ${errorMessage}` },
             { status: 500 }
           )
         }
@@ -126,7 +134,7 @@ export async function POST(request: NextRequest) {
         if (process.env.NODE_ENV === 'production') {
           console.error('[Upload] CRITICAL: Cloudinary keys missing in production!')
           return NextResponse.json(
-            { error: 'Server configuration error: Storage not configured' },
+            { error: 'Server configuration error: Storage not configured (Cloudinary keys missing)' },
             { status: 500 }
           )
         }
@@ -157,7 +165,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[Upload] Error:', error)
     return NextResponse.json(
-      { error: 'Gagal mengupload foto' },
+      { error: 'Gagal mengupload foto (General Error)' },
       { status: 500 }
     )
   }

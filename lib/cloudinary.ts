@@ -13,6 +13,20 @@ cloudinary.config({
  * Upload buffer to Cloudinary
  */
 export async function uploadToCloudinary(buffer: Buffer, folder: string = 'graky-store'): Promise<string> {
+    // Explicitly check config before uploading
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME
+    const apiKey = process.env.CLOUDINARY_API_KEY
+    const apiSecret = process.env.CLOUDINARY_API_SECRET
+
+    if (!cloudName || !apiKey || !apiSecret) {
+        console.error('[Cloudinary] Missing configuration:', {
+            cloud_name: !!cloudName,
+            api_key: !!apiKey,
+            api_secret: !!apiSecret
+        })
+        throw new Error('Cloudinary configuration is missing. Please check environment variables.')
+    }
+
     return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
             {
@@ -22,7 +36,7 @@ export async function uploadToCloudinary(buffer: Buffer, folder: string = 'graky
             (error, result) => {
                 if (error) {
                     console.error('[Cloudinary] Upload error:', error)
-                    reject(error)
+                    reject(new Error(error.message || 'Unknown Cloudinary Error'))
                 } else {
                     resolve(result?.secure_url || '')
                 }
