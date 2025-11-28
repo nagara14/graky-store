@@ -109,13 +109,13 @@ export const authConfig: NextAuthConfig = {
             const hashedPassword = await hash(randomPassword, 10)
             const newUser = await createUser(name || 'Google User', email, hashedPassword, 'USER')
 
-              // Cast to any to avoid TS error with NextAuth types
-              ; (user as any).id = newUser.id
-              ; (user as any).role = newUser.role
+            // Set user properties
+            user.id = newUser.id
+            user.role = newUser.role
             console.log('[Auth] New user created:', newUser.id)
           } else {
-            ; (user as any).id = existingUser.id
-              ; (user as any).role = existingUser.role
+            user.id = existingUser.id
+            user.role = existingUser.role
             console.log('[Auth] Existing user logged in:', existingUser.id)
           }
 
@@ -133,7 +133,7 @@ export const authConfig: NextAuthConfig = {
         token.id = user.id
         token.email = user.email
         token.name = user.name
-        token.role = (user as any).role || 'USER'
+        token.role = user.role || 'USER'
       }
       return token
     },
@@ -142,7 +142,7 @@ export const authConfig: NextAuthConfig = {
         session.user.id = token.id as string
         session.user.email = token.email as string
         session.user.name = token.name as string
-          ; (session.user as any).role = token.role as string
+        session.user.role = token.role as string
       }
       return session
     },
