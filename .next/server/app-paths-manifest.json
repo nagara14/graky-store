@@ -1,7 +1,13 @@
 {
-  "/auth/login/page": "app/auth/login/page.js",
+  "/api/cart/route": "app/api/cart/route.js",
+  "/api/checkout-pay/route": "app/api/checkout-pay/route.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/api/orders/[id]/route": "app/api/orders/[id]/route.js",
+  "/api/orders/route": "app/api/orders/route.js",
   "/page": "app/page.js",
-  "/dashboard/admin/products/page": "app/dashboard/admin/products/page.js",
-  "/dashboard/karyawan/page": "app/dashboard/karyawan/page.js",
-  "/dashboard/karyawan/pesanan/page": "app/dashboard/karyawan/pesanan/page.js"
+  "/keranjang/page": "app/keranjang/page.js",
+  "/order-confirmation/[id]/page": "app/order-confirmation/[id]/page.js",
+  "/riwayat-pesanan/page": "app/riwayat-pesanan/page.js",
+  "/produk/[id]/page": "app/produk/[id]/page.js",
+  "/checkout/page": "app/checkout/page.js"
 }
