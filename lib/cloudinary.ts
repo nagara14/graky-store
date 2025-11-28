@@ -10,28 +10,29 @@ import { v2 as cloudinary } from 'cloudinary'
  * Upload buffer to Cloudinary
  */
 export async function uploadToCloudinary(buffer: Buffer, folder: string = 'graky-store'): Promise<string> {
-    // Explicitly check config before uploading
-    // Trim to remove any accidental spaces from copy-pasting
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim()
-    const apiKey = process.env.CLOUDINARY_API_KEY?.trim()
-    const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim()
-
-    if (!cloudName || !apiKey || !apiSecret) {
-        console.error('[Cloudinary] Missing configuration:', {
-            cloud_name: !!cloudName,
-            api_key: !!apiKey,
-            api_secret: !!apiSecret
-        })
-        throw new Error('Cloudinary configuration is missing. Please check environment variables.')
+    // 1. Cek apakah ada CLOUDINARY_URL (Recommended)
+    if (process.env.CLOUDINARY_URL) {
+        // Biarkan SDK otomatis pakai CLOUDINARY_URL
+        // Kita tidak perlu panggil cloudinary.config() manual
     }
+    // 2. Jika tidak ada, cek variable terpisah
+    else {
+        const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim()
+        const apiKey = process.env.CLOUDINARY_API_KEY?.trim()
+        const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim()
 
-    // Configure with trimmed values
-    cloudinary.config({
-        cloud_name: cloudName,
-        api_key: apiKey,
-        api_secret: apiSecret,
-        secure: true,
-    })
+        if (!cloudName || !apiKey || !apiSecret) {
+            console.error('[Cloudinary] Missing configuration')
+            throw new Error('Cloudinary configuration is missing. Please set CLOUDINARY_URL or individual variables.')
+        }
+
+        cloudinary.config({
+            cloud_name: cloudName,
+            api_key: apiKey,
+            api_secret: apiSecret,
+            secure: true,
+        })
+    }
 
     return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(

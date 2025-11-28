@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     const uploadedUrls: string[] = []
 
     // Check if Cloudinary is configured
-    const useCloudinary = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET)
+    const useCloudinary = !!(process.env.CLOUDINARY_URL || (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET))
 
     // Import Cloudinary helper (using require to avoid top-level await issues in some envs)
     let uploadToCloudinary: any = null
