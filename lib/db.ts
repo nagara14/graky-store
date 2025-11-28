@@ -275,7 +275,7 @@ export async function initializeDatabase() {
         try {
           const [rows]: any = await connection.query(
             `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'orders'`,
-            [process.env.DB_NAME || 'graky_store']
+            [poolConfig.database || process.env.DB_NAME || 'graky_store']
           )
           const existing = (rows || []).map((r: any) => r.COLUMN_NAME)
           if (!existing.includes('notes')) {
