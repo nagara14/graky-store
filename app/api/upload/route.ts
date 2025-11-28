@@ -111,10 +111,12 @@ export async function POST(request: NextRequest) {
           console.log(`[Upload] Uploading ${file.name} to Cloudinary...`)
           const url = await uploadToCloudinary(fileBuffer, 'graky-store/products')
           uploadedUrls.push(url)
-        } catch (error) {
+        } catch (error: any) {
           console.error('[Upload] Cloudinary error:', error)
+          // Return specific error message for debugging
+          const errorMessage = error.message || JSON.stringify(error)
           return NextResponse.json(
-            { error: 'Gagal mengupload ke Cloudinary' },
+            { error: `Gagal mengupload ke Cloudinary: ${errorMessage}` },
             { status: 500 }
           )
         }
