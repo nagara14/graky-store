@@ -12,7 +12,7 @@ const updateProductSchema = z.object({
   stock: z.number().int().min(0).max(99999).optional(),
   sizes: z.array(z.string()).max(10).optional(),
   condition: z.enum(['A', 'B', 'C']).optional(),
-  photoUrls: z.array(z.string().url()).min(2).max(5).optional(),
+  photoUrls: z.array(z.string()).min(2).max(5).optional(),
 }).strict() // Reject unknown fields to prevent prototype pollution
 
 // GET single product
