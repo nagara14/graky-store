@@ -23,6 +23,7 @@
     "autoprefixer": "^10.4.0",
     "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.8.0",
     "lucide-react": "^0.407.0",
     "midtrans-client": "^1.4.3",
     "mysql2": "^3.6.5",

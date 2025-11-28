@@ -69,10 +69,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const uploadDir = path.join(process.cwd(), 'public/uploads/products')
-    await fs.mkdir(uploadDir, { recursive: true })
-
     const uploadedUrls: string[] = []
+
+    // Check if Cloudinary is configured
+    const useCloudinary = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET)
+
+    // Import dynamically to avoid build errors if file doesn't exist yet
+    const { uploadToCloudinary } = await import('@/lib/cloudinary')
 
     for (const file of files) {
       // SECURITY FIX 1: Validate MIME type against whitelist
@@ -100,33 +103,51 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      // SECURITY FIX 4: Force extension based on MIME (prevent double extension attacks)
-      const extension = MIME_TO_EXT[file.type]
-      if (!extension) {
-        return NextResponse.json(
-          { error: 'Tipe file tidak didukung' },
-          { status: 400 }
-        )
+      const fileBuffer = Buffer.from(buffer)
+
+      if (useCloudinary) {
+        // Upload to Cloudinary (Production / Vercel)
+        try {
+          console.log(`[Upload] Uploading ${file.name} to Cloudinary...`)
+          const url = await uploadToCloudinary(fileBuffer, 'graky-store/products')
+          uploadedUrls.push(url)
+        } catch (error) {
+          console.error('[Upload] Cloudinary error:', error)
+          return NextResponse.json(
+            { error: 'Gagal mengupload ke Cloudinary' },
+            { status: 500 }
+          )
+        }
+      } else {
+        // Fallback to Local Storage (Dev only)
+        // Note: This won't work on Vercel!
+        if (process.env.NODE_ENV === 'production') {
+          console.error('[Upload] CRITICAL: Cloudinary keys missing in production!')
+          return NextResponse.json(
+            { error: 'Server configuration error: Storage not configured' },
+            { status: 500 }
+          )
+        }
+
+        const uploadDir = path.join(process.cwd(), 'public/uploads/products')
+        await fs.mkdir(uploadDir, { recursive: true })
+
+        // SECURITY FIX 4: Force extension based on MIME
+        const extension = MIME_TO_EXT[file.type]
+        if (!extension) {
+          return NextResponse.json(
+            { error: 'Tipe file tidak didukung' },
+            { status: 400 }
+          )
+        }
+
+        // SECURITY FIX 5: Generate safe filename
+        const filename = `${Date.now()}-${crypto.randomUUID()}${extension}`
+        const filepath = path.join(uploadDir, filename)
+
+        await fs.writeFile(filepath, fileBuffer)
+        uploadedUrls.push(`/uploads/products/${filename}`)
       }
-
-      // SECURITY FIX 5: Generate safe filename (NO user input in filename)
-      // This prevents path traversal attacks
-      const filename = `${Date.now()}-${crypto.randomUUID()}${extension}`
-      const filepath = path.join(uploadDir, filename)
-
-      // SECURITY FIX 6: Verify filepath is within upload directory
-      // Prevents path traversal even if filename generation has bugs
-      const normalizedPath = path.normalize(filepath)
-      if (!normalizedPath.startsWith(uploadDir)) {
-        console.error('[Upload] Path traversal attempt detected:', filepath)
-        return NextResponse.json(
-          { error: 'Invalid file path detected' },
-          { status: 400 }
-        )
-      }
-
-      await fs.writeFile(filepath, Buffer.from(buffer))
-      uploadedUrls.push(`/uploads/products/${filename}`)
     }
 
     console.log(`[Upload] Successfully uploaded ${uploadedUrls.length} files`)
